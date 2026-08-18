@@ -25,7 +25,6 @@ imagemCano.src = 'images/cano.png';
 
 // --- CARREGANDO OS ÁUDIOS ---
 const somPulo = new Audio('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/audio/wing.wav');
-const somPonto = new Audio('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/audio/point.wav');
 const somBateu = new Audio('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/audio/hit.wav');
 const musicaFundo = new Audio('audio/musica.mp3'); 
 
@@ -33,7 +32,6 @@ musicaFundo.loop = true;
 musicaFundo.volume = 0.3; 
 musicaFundo.preload = 'auto';
 somPulo.volume = 0.5;
-somPonto.volume = 0.5;
 somBateu.volume = 0.5;
 
 // --- CONFIGURAÇÃO DO FIREBASE ---
@@ -66,31 +64,40 @@ const btnIniciarJogo = document.getElementById('btn-iniciar-jogo');
 const btnDeslogar = document.getElementById('btn-deslogar');
 const msgBoasVindas = document.getElementById('msg-boasvindas');
 
-// --- CONTROLE DE MUTE ---
+const dominioFalso = "@nivel25.com";
+
+// --- CONTROLE DE MUTE E MÚSICA INFINITA ---
 const btnSom = document.getElementById('btn-som');
 let somLigado = true;
 
 if (btnSom) {
     btnSom.addEventListener('click', () => {
         somLigado = !somLigado;
-        
-        // Muta ou desmuta todos os áudios
         musicaFundo.muted = !somLigado;
         somPulo.muted = !somLigado;
-        somPonto.muted = !somLigado;
         somBateu.muted = !somLigado;
         
-        // Troca o ícone
         btnSom.innerText = somLigado ? "🔊" : "🔇";
+
+        // Garante que a música comece se a pessoa desmutar e ainda não estiver tocando
+        if (somLigado && musicaFundo.paused) {
+            musicaFundo.play().catch(()=>{});
+        }
     });
 }
 
+// TRUQUE: Tenta tocar a música no exato instante em que a pessoa tocar EM QUALQUER LUGAR da tela
+document.body.addEventListener('click', () => {
+    if (somLigado && musicaFundo.paused) {
+        musicaFundo.play().catch(()=>{});
+    }
+}, { once: true });
 
-const dominioFalso = "@nivel25.com";
 
 // --- VARIÁVEIS DO JOGO ---
 let jogoAcabou = false;
 let jogoIniciado = false;
+let contagem = -1; // -1 significa que a contagem não está rodando
 let pontuacao = 0;
 let nomeDoJogadorAtual = "";
 let usuarioAtualUID = null;
@@ -121,7 +128,6 @@ function salvarPontuacaoFirebase() {
         
         userRef.once('value').then((snapshot) => {
             const dados = snapshot.val();
-            // Salva apenas se for um recorde novo do jogador
             if (!dados || pontuacao > dados.pontos) {
                 userRef.set({
                     nome: nomeDoJogadorAtual,
@@ -132,7 +138,6 @@ function salvarPontuacaoFirebase() {
     }
 }
 
-// Ouvinte em tempo real: qualquer pontuação nova no Firebase atualiza o Top 5
 function escutarRankingFirebase() {
     const listaRanking = document.getElementById('lista-ranking');
     
@@ -176,54 +181,30 @@ auth.onAuthStateChanged((user) => {
     }
 });
 
-btnAbrirRegistro.addEventListener('click', () => {
-    boxLogin.style.display = 'none';
-    boxRegistro.style.display = 'flex';
-});
-
-btnVoltarLogin.addEventListener('click', () => {
-    boxRegistro.style.display = 'none';
-    boxLogin.style.display = 'flex';
-});
+btnAbrirRegistro.addEventListener('click', () => { boxLogin.style.display = 'none'; boxRegistro.style.display = 'flex'; });
+btnVoltarLogin.addEventListener('click', () => { boxRegistro.style.display = 'none'; boxLogin.style.display = 'flex'; });
 
 btnRegistrar.addEventListener('click', () => {
     const user = document.getElementById('reg-username').value.trim();
     const displayName = document.getElementById('reg-displayname').value.trim().toUpperCase();
     const pass = document.getElementById('reg-password').value;
     
-    if(!user || !displayName || !pass) {
-        alert("Preencha todos os campos!");
-        return;
-    }
+    if(!user || !displayName || !pass) { alert("Preencha todos os campos!"); return; }
 
     const idJogador = displayName.replace(/\s+/g, '').toLowerCase();
-    const uFormatado = user.replace(/\s+/g, '').toLowerCase();
-    const emailFake = uFormatado + dominioFalso;
+    const emailFake = user.replace(/\s+/g, '').toLowerCase() + dominioFalso;
 
-    db.ref('nicksReservados/' + idJogador).once('value')
-        .then((snapshot) => {
-            if (snapshot.exists()) {
-                alert(`O Nome "${displayName}" já está em uso! Escolha outro.`);
-            } else {
-                return auth.createUserWithEmailAndPassword(emailFake, pass)
-                    .then((userCredential) => {
-                        return userCredential.user.updateProfile({
-                            displayName: displayName
-                        }).then(() => {
-                            return db.ref('nicksReservados/' + idJogador).set(user);
-                        });
-                    });
-            }
-        })
-        .catch((error) => {
-            if (error.code === 'auth/email-already-in-use') {
-                alert("Esse USUÁRIO de login já existe! Escolha outro.");
-            } else if (error.code === 'auth/weak-password') {
-                alert("A senha precisa ter no mínimo 6 dígitos.");
-            } else {
-                alert("Erro ao criar conta: " + error.message);
-            }
-        });
+    db.ref('nicksReservados/' + idJogador).once('value').then((snapshot) => {
+        if (snapshot.exists()) {
+            alert(`O Nome "${displayName}" já está em uso! Escolha outro.`);
+        } else {
+            return auth.createUserWithEmailAndPassword(emailFake, pass).then((userCredential) => {
+                return userCredential.user.updateProfile({ displayName: displayName }).then(() => {
+                    return db.ref('nicksReservados/' + idJogador).set(user);
+                });
+            });
+        }
+    }).catch((error) => { alert("Erro ao criar conta: " + error.message); });
 });
 
 btnLogin.addEventListener('click', () => {
@@ -231,25 +212,18 @@ btnLogin.addEventListener('click', () => {
     const pass = document.getElementById('login-password').value;
     
     if(user && pass) {
-        const uFormatado = user.replace(/\s+/g, '').toLowerCase();
-        const emailFake = uFormatado + dominioFalso;
-        
-        auth.signInWithEmailAndPassword(emailFake, pass)
-            .catch(() => {
-                alert("Usuário ou senha incorretos!");
-            });
-    } else {
-        alert("Preencha o Usuário e a Senha!");
-    }
+        const emailFake = user.replace(/\s+/g, '').toLowerCase() + dominioFalso;
+        auth.signInWithEmailAndPassword(emailFake, pass).catch(() => { alert("Usuário ou senha incorretos!"); });
+    } else { alert("Preencha o Usuário e a Senha!"); }
 });
 
-btnDeslogar.addEventListener('click', () => {
-    auth.signOut();
-});
+btnDeslogar.addEventListener('click', () => { auth.signOut(); });
 
+// --- LÓGICA DE INICIAR O JOGO E CONTAGEM (3, 2, 1, GO!) ---
 btnIniciarJogo.addEventListener('click', () => {
     telaLogin.style.display = 'none';
     
+    // Reseta o mapa e o Jorge
     jorge.y = 150;
     jorge.velocidade = 0;
     canos = [];
@@ -257,20 +231,28 @@ btnIniciarJogo.addEventListener('click', () => {
     pontuacao = 0;
     velocidadeCanos = 2;
     jogoAcabou = false;
-    jogoIniciado = true;
+    jogoIniciado = false; 
     
-    somPulo.play().catch(()=>{});
-    somPulo.pause();
-    somPulo.currentTime = 0;
-    musicaFundo.currentTime = 0;
-    musicaFundo.play().catch(()=>{});
+    contagem = 3; // Define que vai ter 3 segundos de espera
+    
+    if (somLigado) { musicaFundo.play().catch(()=>{}); }
 
-    gameLoop();
+    gameLoop(); // Roda o loop para mostrar o fundo e a contagem na tela
+
+    // Sistema que diminui o número a cada 1 segundo
+    let intervalo = setInterval(() => {
+        contagem--;
+        if (contagem < 0) {
+            clearInterval(intervalo);
+            jogoIniciado = true; // Libera o jogo de verdade
+            pular(); // Dá o primeiro pulinho automático no "GO!"
+        }
+    }, 1000);
 });
 
 // --- CONTROLES E FÍSICA ---
 function pular() {
-    if (!jogoIniciado) return; 
+    if (contagem >= 0) return; // Trava o pulo enquanto está no "3, 2, 1"
 
     if (jogoAcabou) {
         salvarPontuacaoFirebase();
@@ -282,15 +264,15 @@ function pular() {
         
         jogoAcabou = false;
         jogoIniciado = false;
-        
-        musicaFundo.pause();
-        musicaFundo.currentTime = 0;
+        contagem = -1;
         return;
     }
     
+    if (!jogoIniciado) return;
+
     jorge.velocidade = jorge.forcaPulo;
     somPulo.currentTime = 0;
-    somPulo.play().catch(()=>{}); 
+    if (somLigado) { somPulo.play().catch(()=>{}); } 
 }
 
 function gerenciarCanos() {
@@ -333,16 +315,16 @@ function gerenciarCanos() {
             if (jorge.y + hitboxJorge < cano.alturaTopo || 
                 jorge.y + jorge.height - hitboxJorge > cano.alturaTopo + espacoEntreCanos) {
                 
-                if (!jogoAcabou) { somBateu.play().catch(()=>{}); }
+                if (!jogoAcabou && somLigado) { somBateu.play().catch(()=>{}); }
                 jogoAcabou = true;
             }
         }
 
+        // --- MARCAR PONTO SILENCIOSO ---
         if (cano.x + larguraCano < jorge.x && !cano.passou) {
             pontuacao++;
             cano.passou = true;
-            somPonto.currentTime = 0;
-            somPonto.play().catch(()=>{}); 
+            // O som irritante foi removido daqui!
             if (velocidadeCanos < velocidadeMaxima) { velocidadeCanos += 0.15; }
         }
 
@@ -359,7 +341,7 @@ function atualizarFisica() {
 
     if (jorge.y + jorge.height >= canvas.height) {
         jorge.y = canvas.height - jorge.height;
-        if (!jogoAcabou) { somBateu.play().catch(()=>{}); }
+        if (!jogoAcabou && somLigado) { somBateu.play().catch(()=>{}); }
         jogoAcabou = true;
     }
     if (jorge.y <= 0) { jorge.y = 0; jorge.velocidade = 0; }
@@ -402,7 +384,8 @@ function desenharGameOver() {
 }
 
 function gameLoop() {
-    if (!jogoIniciado) return; 
+    // Se nada está rolando (nem jogo, nem contagem, nem derrota), não desenha nada
+    if (!jogoIniciado && contagem < 0 && !jogoAcabou) return; 
 
     if (imagemFundo.complete && imagemFundo.naturalHeight !== 0) {
         ctx.drawImage(imagemFundo, 0, 0, canvas.width, canvas.height);
@@ -410,13 +393,36 @@ function gameLoop() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
 
+    // 1. TELA DE CONTAGEM (3, 2, 1, GO!)
+    if (contagem >= 0) {
+        desenharJorge(); // Deixa o Jorge esperando no ar
+        
+        ctx.fillStyle = '#fff';
+        ctx.font = '40px "Press Start 2P", monospace';
+        ctx.textAlign = 'center';
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#000';
+        
+        let textoAviso = contagem === 0 ? "GO!" : contagem;
+        
+        ctx.strokeText(textoAviso, canvas.width / 2, canvas.height / 2 + 15);
+        ctx.fillText(textoAviso, canvas.width / 2, canvas.height / 2 + 15);
+        ctx.textAlign = 'left';
+
+        requestAnimationFrame(gameLoop);
+        return;
+    }
+
+    // 2. TELA DO JOGO ROLANDO LIVRE
     if (!jogoAcabou) {
         atualizarFisica();
         gerenciarCanos(); 
         desenharJorge();
         desenharPlacar();
         requestAnimationFrame(gameLoop);
-    } else {
+    } 
+    // 3. TELA DE DERROTA
+    else {
         for (let i = 0; i < canos.length; i++) {
             if (imagemCano.complete && imagemCano.naturalHeight !== 0) {
                 let proporcao = imagemCano.naturalHeight / imagemCano.naturalWidth;
