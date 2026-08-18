@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Flappy Jorge</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <div id="game-wrapper">
+        <!-- Botão de Som -->
+        <button id="btn-som">🔊</button>
+
+        <div id="tela-login">
+            <h1>FLAPPY JORGE</h1>
+            <img src="images/jorge.png" id="jorge-menu" alt="Jorge Voando">
+            
+            <div class="login-box" id="box-login">
+                <input type="text" id="login-username" placeholder="USUÁRIO" maxlength="15">
+                <input type="password" id="login-password" placeholder="SENHA">
+                <button id="btn-login">ENTRAR</button>
+                <button id="btn-abrir-registro" class="btn-secundario">CRIAR CONTA</button>
+            </div>
+
+            <div class="login-box" id="box-registro" style="display: none;">
+                <input type="text" id="reg-username" placeholder="USUÁRIO (Login)" maxlength="15">
+                <input type="text" id="reg-displayname" placeholder="NOME NO RANKING" maxlength="10">
+                <input type="password" id="reg-password" placeholder="SENHA (Mín. 6)">
+                <button id="btn-registrar">CRIAR CONTA</button>
+                <button id="btn-voltar-login" class="btn-secundario">VOLTAR</button>
+            </div>
+
+            <div class="login-box" id="box-play" style="display: none;">
+                <div id="msg-boasvindas" class="player-tag">JOGADOR</div>
+                <button id="btn-iniciar-jogo" class="btn-jogar-destaque">▶ JOGAR</button>
+                <button id="btn-deslogar" class="btn-secundario">TROCAR CONTA</button>
+            </div>
+
+            <div class="caixa-ranking">
+                <h2>🏆 TOP 5 🏆</h2>
+                <ul id="lista-ranking">
+                    <li>Carregando...</li>
+                </ul>
+            </div>
+        </div>
+
+        <canvas id="gameCanvas" width="320" height="480"></canvas>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>

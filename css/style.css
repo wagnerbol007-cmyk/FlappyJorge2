@@ -1,0 +1,369 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #050d1a; /* Um fundo ainda mais escuro para o jogo dar destaque */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    font-family: 'Press Start 2P', monospace;
+}
+
+/* --- A MÁGICA DO EMULADOR --- */
+#game-wrapper {
+    width: 320px;   /* Mantém travado no tamanho original */
+    height: 480px;  /* Mantém travado no tamanho original */
+    position: relative;
+    transform-origin: center; /* Garante que o zoom vai partir do meio da tela */
+    
+    border: 4px solid #fff;
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.8);
+    overflow: hidden;
+}
+
+
+/* --- ESTILOS DO JOGO --- */
+canvas {
+    width: 320px;
+    height: 480px;
+    display: block;
+    background-color: #70c5ce; 
+    image-rendering: pixelated; 
+}
+
+#tela-login {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    
+    /* --- NOVO FUNDO DO MENU --- */
+    /* O '../' serve para o CSS sair da pasta dele e buscar a foto lá na pasta images */
+    background-image: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.5)), url('../images/fundo.png');
+    background-size: cover;
+    background-position: bottom;
+}
+
+
+#tela-login h1 {
+    color: #fff;
+    font-size: 20px;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 0px #000;
+}
+
+#tela-login p {
+    font-size: 10px;
+    color: #ffd700; 
+    margin-bottom: 10px;
+}
+
+#nome-jogador {
+    font-family: 'Press Start 2P', monospace;
+    padding: 10px;
+    width: 80%;
+    border-radius: 0;
+    border: 4px solid #555;
+    background-color: #fff;
+    font-size: 12px;
+    text-align: center;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+}
+
+#btn-jogar {
+    font-family: 'Press Start 2P', monospace;
+    padding: 12px 20px;
+    background-color: #1a5299; 
+    color: white;
+    border: 4px solid #fff;
+    border-radius: 20px; 
+    font-size: 14px;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #0b1d3a;
+    margin-bottom: 30px;
+}
+
+#btn-jogar:active {
+    transform: translateY(4px);
+    box-shadow: 0 0 0 #0b1d3a;
+}
+
+/* --- ESTILOS DO RANKING --- */
+.caixa-ranking {
+    width: 90%;
+    border: 2px dashed #555;
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.5);
+    box-sizing: border-box;
+}
+
+.caixa-ranking h2 {
+    font-size: 12px;
+    color: #ffd700;
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+#lista-ranking {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-size: 10px;
+    line-height: 2;
+    text-align: left;
+}
+
+/* --- ESTILOS DO AVATAR NO MENU --- */
+#jorge-menu {
+    width: 120px; /* Tamanho bem maior, equivalente a uns 3cm no celular */
+    height: auto;
+    image-rendering: pixelated; /* Mantém os pixels bonitos e não borra */
+    margin-bottom: 15px; /* Espaço entre ele e o texto de digitar o nome */
+    
+    /* A animação que faz ele flutuar puxado para a esquerda (-20px) */
+    animation: flutuarJorge 2s ease-in-out infinite;
+}
+
+/* O motor da animação de flutuar */
+@keyframes flutuarJorge {
+    0% { transform: translate(-20px, 0px); }
+    50% { transform: translate(-20px, -12px); } /* Sobe um pouquinho */
+    100% { transform: translate(-20px, 0px); } /* Volta para a posição original */
+}
+
+/* --- FUNDO DA TELA INICIAL --- */
+#tela-login {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    
+    /* Fundo da cidade com uma película escura por cima */
+    background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.7)), url('../images/fundo.png');
+    background-size: cover;
+    background-position: bottom;
+}
+
+/* --- ESTILOS DO AVATAR NO MENU --- */
+#jorge-menu {
+    width: 120px; 
+    height: auto;
+    image-rendering: pixelated; 
+    margin-bottom: 15px; 
+    animation: flutuarJorge 2s ease-in-out infinite;
+}
+
+@keyframes flutuarJorge {
+    0% { transform: translate(-20px, 0px); }
+    50% { transform: translate(-20px, -12px); } 
+    100% { transform: translate(-20px, 0px); } 
+}
+
+/* --- CAIXA DE LOGIN/SENHA --- */
+.login-box {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 80%;
+    max-width: 250px;
+}
+
+.login-box input {
+    padding: 12px;
+    border-radius: 5px;
+    border: 2px solid #fff;
+    background: rgba(0,0,0,0.6);
+    color: white;
+    font-family: 'Press Start 2P', monospace;
+    text-align: center;
+}
+
+.login-box button {
+    padding: 12px;
+    cursor: pointer;
+    font-family: 'Press Start 2P', monospace;
+    border: none;
+    border-radius: 5px;
+    font-size: 12px;
+}
+
+#btn-login { 
+    background: #ffd700; 
+    color: #000; 
+}
+
+#btn-login, #btn-registrar, #btn-iniciar-jogo { 
+    background: #ffd700; 
+    color: #000; 
+}
+
+
+.btn-secundario { 
+    background: transparent !important; 
+    color: #fff !important; 
+    border: 1px solid #fff !important; 
+}
+
+/* --- FUNDO E AVATAR NO MENU --- */
+#tela-login {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.7)), url('../images/fundo.png');
+    background-size: cover;
+    background-position: bottom;
+}
+
+#jorge-menu {
+    width: 115px; /* Tamanho em destaque (~3cm) */
+    height: auto;
+    image-rendering: pixelated;
+    margin-bottom: 12px;
+    animation: flutuarJorge 2s ease-in-out infinite;
+}
+
+/* Flutua suavemente puxado levemente para a esquerda */
+@keyframes flutuarJorge {
+    0% { transform: translate(-18px, 0px); }
+    50% { transform: translate(-18px, -10px); }
+    100% { transform: translate(-18px, 0px); }
+}
+
+/* --- CAIXAS E BOTÕES --- */
+.login-box {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 80%;
+    max-width: 250px;
+}
+
+.player-tag {
+    color: #ffd700;
+    font-size: 11px;
+    text-align: center;
+    margin-bottom: 4px;
+    font-family: 'Press Start 2P', monospace;
+}
+
+.btn-jogar-destaque {
+    padding: 14px;
+    font-size: 14px;
+    font-weight: bold;
+    background: #ffd700 !important;
+    color: #000 !important;
+    border: 2px solid #fff;
+    cursor: pointer;
+    border-radius: 6px;
+    font-family: 'Press Start 2P', monospace;
+}
+
+.login-box input {
+    padding: 12px;
+    border-radius: 5px;
+    border: 2px solid #fff;
+    background: rgba(0,0,0,0.6);
+    color: white;
+    font-family: 'Press Start 2P', monospace;
+    text-align: center;
+}
+
+.login-box button {
+    padding: 11px;
+    cursor: pointer;
+    font-family: 'Press Start 2P', monospace;
+    border: none;
+    border-radius: 5px;
+}
+
+#btn-login, #btn-registrar { 
+    background: #ffd700; 
+    color: #000; 
+}
+
+.btn-secundario { 
+    background: transparent !important; 
+    color: #fff !important; 
+    border: 1px solid #fff !important; 
+    font-size: 9px;
+}
+/* --- CAIXA DE RANKING VISÍVEL --- */
+.caixa-ranking {
+    margin-top: 15px;
+    width: 85%;
+    max-width: 260px;
+    background: rgba(0, 0, 0, 0.75);
+    border: 2px dashed #ffd700;
+    border-radius: 8px;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+.caixa-ranking h2 {
+    font-size: 11px;
+    color: #ffd700;
+    margin: 0 0 8px 0;
+    text-align: center;
+    font-family: 'Press Start 2P', monospace;
+}
+
+#lista-ranking {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#lista-ranking li {
+    color: #ffffff; /* Texto branco nítido */
+    font-size: 8px;
+    line-height: 16px;
+    font-family: 'Press Start 2P', monospace;
+    text-shadow: 1px 1px 0 #000;
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 2px 0;
+}
+
+#lista-ranking li:first-child {
+    color: #ffd700; /* O 1º colocado fica dourado */
+}
+#btn-som {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 20; /* Garante que ele fique acima de tudo */
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid #fff;
+    color: #fff;
+    padding: 5px 8px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    border-radius: 5px;
+}
