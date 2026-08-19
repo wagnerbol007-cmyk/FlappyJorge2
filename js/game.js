@@ -79,14 +79,12 @@ if (btnSom) {
         
         btnSom.innerText = somLigado ? "🔊" : "🔇";
 
-        // Garante que a música comece se a pessoa desmutar e ainda não estiver tocando
         if (somLigado && musicaFundo.paused) {
             musicaFundo.play().catch(()=>{});
         }
     });
 }
 
-// TRUQUE: Tenta tocar a música no exato instante em que a pessoa tocar EM QUALQUER LUGAR da tela
 document.body.addEventListener('click', () => {
     if (somLigado && musicaFundo.paused) {
         musicaFundo.play().catch(()=>{});
@@ -94,15 +92,17 @@ document.body.addEventListener('click', () => {
 }, { once: true });
 
 
-// --- VARIÁVEIS DO JOGO ---
+// --- VARIÁVEIS DO JOGO E TRAVA DE FPS ---
 let jogoAcabou = false;
 let jogoIniciado = false;
-let contagem = -1; // -1 significa que a contagem não está rodando
+let contagem = -1; 
 let pontuacao = 0;
 let nomeDoJogadorAtual = "";
 let usuarioAtualUID = null;
 
-// O Jorge
+let ultimoTempo = 0;
+const intervaloFPS = 1000 / 60; 
+
 let jorge = {
     x: 40,
     y: 150,
@@ -113,7 +113,6 @@ let jorge = {
     forcaPulo: -8   
 };
 
-// Os Obstáculos
 let canos = [];
 const larguraCano = 75; 
 const espacoEntreCanos = 145; 
@@ -121,18 +120,18 @@ let velocidadeCanos = 2;
 const velocidadeMaxima = 4.5; 
 let framesDesdeUltimoCano = 0; 
 
-// --- RANKING ONLINE EM TEMPO REAL (FIREBASE) ---
+// --- RANKING ONLINE EM TEMPO REAL ---
 function salvarPontuacaoFirebase() {
     if (pontuacao > 0 && usuarioAtualUID) {
+        // BLINDAGEM EXTRA: Puxa o nome real atualizado do servidor antes de salvar
+        const nomeCorreto = auth.currentUser ? (auth.currentUser.displayName || nomeDoJogadorAtual) : nomeDoJogadorAtual;
+        
         const userRef = db.ref('ranking/' + usuarioAtualUID);
         
         userRef.once('value').then((snapshot) => {
             const dados = snapshot.val();
             if (!dados || pontuacao > dados.pontos) {
-                userRef.set({
-                    nome: nomeDoJogadorAtual,
-                    pontos: pontuacao
-                });
+                userRef.set({ nome: nomeCorreto, pontos: pontuacao });
             }
         });
     }
@@ -140,7 +139,6 @@ function salvarPontuacaoFirebase() {
 
 function escutarRankingFirebase() {
     const listaRanking = document.getElementById('lista-ranking');
-    
     db.ref('ranking').on('value', (snapshot) => {
         const dados = snapshot.val();
         listaRanking.innerHTML = '';
@@ -152,9 +150,7 @@ function escutarRankingFirebase() {
 
         const rankingArray = Object.values(dados);
         rankingArray.sort((a, b) => b.pontos - a.pontos);
-        const top5 = rankingArray.slice(0, 5);
-
-        top5.forEach((jogador, index) => {
+        rankingArray.slice(0, 5).forEach((jogador, index) => {
             const li = document.createElement('li');
             li.innerHTML = `<span>${index + 1}º ${jogador.nome.substring(0, 9)}</span><span>${jogador.pontos} XP</span>`;
             listaRanking.appendChild(li);
@@ -200,6 +196,10 @@ btnRegistrar.addEventListener('click', () => {
         } else {
             return auth.createUserWithEmailAndPassword(emailFake, pass).then((userCredential) => {
                 return userCredential.user.updateProfile({ displayName: displayName }).then(() => {
+                    // BLINDAGEM EXTRA: Força a atualização do nome localmente na mesma hora
+                    nomeDoJogadorAtual = displayName;
+                    msgBoasVindas.innerText = `PILOTO: ${nomeDoJogadorAtual}`;
+                    
                     return db.ref('nicksReservados/' + idJogador).set(user);
                 });
             });
@@ -223,45 +223,42 @@ btnDeslogar.addEventListener('click', () => { auth.signOut(); });
 btnIniciarJogo.addEventListener('click', () => {
     telaLogin.style.display = 'none';
     
-    // Reseta o mapa e o Jorge
     jorge.y = 150;
     jorge.velocidade = 0;
     canos = [];
     framesDesdeUltimoCano = 0;
     pontuacao = 0;
-    velocidadeCanos = 2;
+    velocidadeCanos = 2; 
     jogoAcabou = false;
     jogoIniciado = false; 
     
-    contagem = 3; // Define que vai ter 3 segundos de espera
+    contagem = 3; 
     
     if (somLigado) { musicaFundo.play().catch(()=>{}); }
 
-    gameLoop(); // Roda o loop para mostrar o fundo e a contagem na tela
+    ultimoTempo = performance.now();
+    requestAnimationFrame(gameLoop);
 
-    // Sistema que diminui o número a cada 1 segundo
     let intervalo = setInterval(() => {
         contagem--;
         if (contagem < 0) {
             clearInterval(intervalo);
-            jogoIniciado = true; // Libera o jogo de verdade
-            pular(); // Dá o primeiro pulinho automático no "GO!"
+            jogoIniciado = true; 
+            pular(); 
         }
     }, 1000);
 });
 
 // --- CONTROLES E FÍSICA ---
 function pular() {
-    if (contagem >= 0) return; // Trava o pulo enquanto está no "3, 2, 1"
+    if (contagem >= 0) return; 
 
     if (jogoAcabou) {
         salvarPontuacaoFirebase();
-        
         telaLogin.style.display = 'flex';
         boxLogin.style.display = 'none';
         boxRegistro.style.display = 'none';
         boxPlay.style.display = 'flex';
-        
         jogoAcabou = false;
         jogoIniciado = false;
         contagem = -1;
@@ -292,13 +289,11 @@ function gerenciarCanos() {
         if (imagemCano.complete && imagemCano.naturalHeight !== 0) {
             let proporcao = imagemCano.naturalHeight / imagemCano.naturalWidth;
             let alturaDesenhada = larguraCano * proporcao;
-            
             ctx.save();
             ctx.translate(cano.x + (larguraCano / 2), cano.alturaTopo);
             ctx.rotate(Math.PI); 
             ctx.drawImage(imagemCano, -larguraCano / 2, 0, larguraCano, alturaDesenhada);
             ctx.restore();
-            
             ctx.drawImage(imagemCano, cano.x, cano.alturaTopo + espacoEntreCanos, larguraCano, alturaDesenhada);
         } else {
             ctx.fillStyle = '#1a5299';
@@ -320,12 +315,12 @@ function gerenciarCanos() {
             }
         }
 
-        // --- MARCAR PONTO SILENCIOSO ---
         if (cano.x + larguraCano < jorge.x && !cano.passou) {
             pontuacao++;
             cano.passou = true;
-            // O som irritante foi removido daqui!
-            if (velocidadeCanos < velocidadeMaxima) { velocidadeCanos += 0.15; }
+            if (pontuacao >= 50 && velocidadeCanos < velocidadeMaxima) { 
+                velocidadeCanos += 0.05; 
+            }
         }
 
         if (cano.x + larguraCano < 0) {
@@ -383,9 +378,16 @@ function desenharGameOver() {
     ctx.textAlign = 'left'; 
 }
 
-function gameLoop() {
-    // Se nada está rolando (nem jogo, nem contagem, nem derrota), não desenha nada
+function gameLoop(tempoAtual) {
     if (!jogoIniciado && contagem < 0 && !jogoAcabou) return; 
+
+    let idAnimacao = requestAnimationFrame(gameLoop);
+
+    if (!tempoAtual) tempoAtual = performance.now();
+    let delta = tempoAtual - ultimoTempo;
+    
+    if (delta < intervaloFPS) return;
+    ultimoTempo = tempoAtual - (delta % intervaloFPS);
 
     if (imagemFundo.complete && imagemFundo.naturalHeight !== 0) {
         ctx.drawImage(imagemFundo, 0, 0, canvas.width, canvas.height);
@@ -393,41 +395,31 @@ function gameLoop() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
 
-    // 1. TELA DE CONTAGEM (3, 2, 1, GO!)
     if (contagem >= 0) {
-        desenharJorge(); // Deixa o Jorge esperando no ar
-        
+        desenharJorge(); 
         ctx.fillStyle = '#fff';
         ctx.font = '40px "Press Start 2P", monospace';
         ctx.textAlign = 'center';
         ctx.lineWidth = 4;
         ctx.strokeStyle = '#000';
-        
         let textoAviso = contagem === 0 ? "GO!" : contagem;
-        
         ctx.strokeText(textoAviso, canvas.width / 2, canvas.height / 2 + 15);
         ctx.fillText(textoAviso, canvas.width / 2, canvas.height / 2 + 15);
         ctx.textAlign = 'left';
-
-        requestAnimationFrame(gameLoop);
         return;
     }
 
-    // 2. TELA DO JOGO ROLANDO LIVRE
     if (!jogoAcabou) {
         atualizarFisica();
         gerenciarCanos(); 
         desenharJorge();
         desenharPlacar();
-        requestAnimationFrame(gameLoop);
     } 
-    // 3. TELA DE DERROTA
     else {
         for (let i = 0; i < canos.length; i++) {
             if (imagemCano.complete && imagemCano.naturalHeight !== 0) {
                 let proporcao = imagemCano.naturalHeight / imagemCano.naturalWidth;
                 let alturaDesenhada = larguraCano * proporcao;
-
                 ctx.save();
                 ctx.translate(canos[i].x + (larguraCano / 2), canos[i].alturaTopo);
                 ctx.rotate(Math.PI); 
@@ -438,10 +430,23 @@ function gameLoop() {
         }
         desenharJorge();
         desenharGameOver();
+        cancelAnimationFrame(idAnimacao);
     }
 }
 
-// Eventos de clique e toque
 canvas.addEventListener('mousedown', pular);
 canvas.addEventListener('touchstart', function(e) { e.preventDefault(); pular(); }, { passive: false });
 document.addEventListener('keydown', function(e) { if(e.code === 'Space') { e.preventDefault(); pular(); } });
+
+// --- CONTROLE DE ABA MINIMIZADA ---
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        // O jogador minimizou o navegador, trocou de aba ou bloqueou a tela
+        musicaFundo.pause();
+    } else {
+        // O jogador voltou para o jogo
+        if (somLigado) {
+            musicaFundo.play().catch(()=>{});
+        }
+    }
+});
