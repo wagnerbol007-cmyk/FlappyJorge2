@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ranking Global - Flappy Jorge</title>
+    
+    <!-- Puxa a mesma fonte do jogo -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            background-color: #050d1a;
+            color: #fff;
+            font-family: 'Press Start 2P', monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: #ffd700;
+            text-align: center;
+            font-size: 20px;
+            text-shadow: 3px 3px 0px #000;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+
+        .ranking-container {
+            width: 100%;
+            max-width: 600px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 4px solid #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 15px 10px;
+            text-align: left;
+            border-bottom: 1px dashed #555;
+            font-size: 10px;
+            line-height: 1.5;
+        }
+
+        th {
+            color: #ffd700;
+            border-bottom: 2px solid #ffd700;
+            font-size: 12px;
+        }
+
+        /* Cores especiais para o pódio */
+        .top1 { color: #ffd700; text-shadow: 1px 1px 0 #000; font-size: 12px; } /* Ouro */
+        .top2 { color: #c0c0c0; text-shadow: 1px 1px 0 #000; } /* Prata */
+        .top3 { color: #cd7f32; text-shadow: 1px 1px 0 #000; } /* Bronze */
+        
+        .pontos { text-align: right; }
+    </style>
+</head>
+<body>
+
+    <h1>🏆 RANKING GERAL 🏆<br><br>FLAPPY JORGE</h1>
+    
+    <div class="ranking-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>POS</th>
+                    <th>PILOTO</th>
+                    <th class="pontos">XP</th>
+                </tr>
+            </thead>
+            <tbody id="tabela-ranking">
+                <tr>
+                    <td colspan="3" style="text-align: center;">Carregando...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <script>
+        // Mesma configuração do seu arquivo game.js
+        const firebaseConfig = {
+            apiKey: "AIzaSyDj11GWGrm_hCZ_cR9Iho0cCDwRi-9lgMs",
+            authDomain: "flappyjorge-6df51.firebaseapp.com",
+            databaseURL: "https://flappyjorge-6df51-default-rtdb.firebaseio.com",
+            projectId: "flappyjorge-6df51",
+            storageBucket: "flappyjorge-6df51.firebasestorage.app",
+            messagingSenderId: "567350536944",
+            appId: "1:567350536944:web:a5ed99b38d16a00d087035",
+            measurementId: "G-1GCCZ24ENK"
+        };
+
+        // Inicializa o Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        const tabelaRanking = document.getElementById('tabela-ranking');
+
+        // Escuta o banco de dados em tempo real
+        db.ref('ranking').on('value', (snapshot) => {
+            const dados = snapshot.val();
+            tabelaRanking.innerHTML = ''; // Limpa o carregando
+            
+            if (!dados) {
+                tabelaRanking.innerHTML = '<tr><td colspan="3" style="text-align:center;">Nenhum recorde ainda!</td></tr>';
+                return;
+            }
+
+            // Transforma os dados em array e ordena do maior pro menor
+            const rankingArray = Object.values(dados);
+            rankingArray.sort((a, b) => b.pontos - a.pontos);
+
+            // Cria as linhas da tabela
+            rankingArray.forEach((jogador, index) => {
+                let classeTop = '';
+                
+                // Destaca os 3 primeiros
+                if (index === 0) classeTop = 'top1';
+                if (index === 1) classeTop = 'top2';
+                if (index === 2) classeTop = 'top3';
+
+                const tr = document.createElement('tr');
+                tr.className = classeTop;
+                tr.innerHTML = `
+                    <td>${index + 1}º</td>
+                    <td>${jogador.nome}</td>
+                    <td class="pontos">${jogador.pontos}</td>
+                `;
+                tabelaRanking.appendChild(tr);
+            });
+        });
+    </script>
+</body>
+</html>
