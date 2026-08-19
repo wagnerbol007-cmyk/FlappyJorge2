@@ -91,6 +91,17 @@ document.body.addEventListener('click', () => {
     }
 }, { once: true });
 
+// --- PAUSA A MÚSICA AO MINIMIZAR/TROCAR DE ABA ---
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        musicaFundo.pause();
+    } else {
+        if (somLigado) {
+            musicaFundo.play().catch(()=>{});
+        }
+    }
+});
+
 
 // --- VARIÁVEIS DO JOGO E TRAVA DE FPS ---
 let jogoAcabou = false;
@@ -123,7 +134,6 @@ let framesDesdeUltimoCano = 0;
 // --- RANKING ONLINE EM TEMPO REAL ---
 function salvarPontuacaoFirebase() {
     if (pontuacao > 0 && usuarioAtualUID) {
-        // BLINDAGEM EXTRA: Puxa o nome real atualizado do servidor antes de salvar
         const nomeCorreto = auth.currentUser ? (auth.currentUser.displayName || nomeDoJogadorAtual) : nomeDoJogadorAtual;
         
         const userRef = db.ref('ranking/' + usuarioAtualUID);
@@ -196,7 +206,6 @@ btnRegistrar.addEventListener('click', () => {
         } else {
             return auth.createUserWithEmailAndPassword(emailFake, pass).then((userCredential) => {
                 return userCredential.user.updateProfile({ displayName: displayName }).then(() => {
-                    // BLINDAGEM EXTRA: Força a atualização do nome localmente na mesma hora
                     nomeDoJogadorAtual = displayName;
                     msgBoasVindas.innerText = `PILOTO: ${nomeDoJogadorAtual}`;
                     
@@ -315,11 +324,17 @@ function gerenciarCanos() {
             }
         }
 
+        // --- SISTEMA DE PONTUAÇÃO E DIFICULDADE DINÂMICA ---
         if (cano.x + larguraCano < jorge.x && !cano.passou) {
             pontuacao++;
             cano.passou = true;
-            if (pontuacao >= 50 && velocidadeCanos < velocidadeMaxima) { 
-                velocidadeCanos += 0.05; 
+            
+            if (velocidadeCanos < velocidadeMaxima) {
+                if (pontuacao < 50) {
+                    velocidadeCanos += 0.02; 
+                } else {
+                    velocidadeCanos += 0.05; 
+                }
             }
         }
 
@@ -437,16 +452,3 @@ function gameLoop(tempoAtual) {
 canvas.addEventListener('mousedown', pular);
 canvas.addEventListener('touchstart', function(e) { e.preventDefault(); pular(); }, { passive: false });
 document.addEventListener('keydown', function(e) { if(e.code === 'Space') { e.preventDefault(); pular(); } });
-
-// --- CONTROLE DE ABA MINIMIZADA ---
-document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-        // O jogador minimizou o navegador, trocou de aba ou bloqueou a tela
-        musicaFundo.pause();
-    } else {
-        // O jogador voltou para o jogo
-        if (somLigado) {
-            musicaFundo.play().catch(()=>{});
-        }
-    }
-});
