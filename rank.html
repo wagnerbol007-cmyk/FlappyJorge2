@@ -26,10 +26,91 @@
             text-align: center;
             font-size: 20px;
             text-shadow: 3px 3px 0px #000;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             line-height: 1.5;
         }
 
+        /* --- ESTILOS DO PÓDIO --- */
+        .podium-container {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 5px;
+            margin-bottom: 30px;
+            width: 100%;
+            max-width: 600px;
+            height: 200px;
+        }
+
+        .podium-step {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            text-align: center;
+            width: 30%;
+            border: 4px solid #fff;
+            border-bottom: none;
+            border-radius: 8px 8px 0 0;
+            padding: 10px 5px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.8);
+            position: relative;
+        }
+
+        .podium-name {
+            font-size: 12px; /* Aumentado para o 2º e 3º lugar */
+            margin-bottom: 8px;
+            word-break: break-all;
+            color: #fff;
+            text-shadow: 1px 1px 0px #000;
+        }
+
+        .podium-score {
+            font-size: 10px;
+            margin-bottom: 15px;
+            color: #fff;
+            text-shadow: 1px 1px 0px #000;
+        }
+
+        .podium-rank {
+            font-size: 24px;
+            text-shadow: 3px 3px 0px #000;
+            color: #fff;
+        }
+
+        /* Alturas e cores de cada posição */
+        .step-2 { 
+            height: 120px; 
+            background: linear-gradient(to top, #4a4a4a, #c0c0c0); 
+            border-color: #c0c0c0;
+        }
+        .step-1 { 
+            height: 160px; 
+            background: linear-gradient(to top, #8a7300, #ffd700); 
+            border-color: #ffd700;
+            z-index: 10;
+        }
+        
+        /* Destaque especial para o nome do 1º lugar */
+        .step-1 .podium-name {
+            font-size: 16px; /* Ainda maior e dourado para o campeão */
+            color: #ffd700;
+        }
+
+        .step-3 { 
+            height: 90px; 
+            background: linear-gradient(to top, #5c3a21, #cd7f32); 
+            border-color: #cd7f32;
+        }
+
+        /* Coroa para o 1º lugar */
+        .crown {
+            position: absolute;
+            top: -30px;
+            font-size: 24px;
+        }
+
+        /* --- ESTILOS DA TABELA --- */
         .ranking-container {
             width: 100%;
             max-width: 600px;
@@ -39,6 +120,7 @@
             padding: 20px;
             box-shadow: 0 0 20px rgba(0,0,0,0.8);
             overflow-x: auto;
+            box-sizing: border-box;
         }
 
         table {
@@ -55,15 +137,10 @@
         }
 
         th {
-            color: #ffd700;
-            border-bottom: 2px solid #ffd700;
+            color: #fff;
+            border-bottom: 2px solid #fff;
             font-size: 12px;
         }
-
-        /* Cores especiais para o pódio */
-        .top1 { color: #ffd700; text-shadow: 1px 1px 0 #000; font-size: 12px; } /* Ouro */
-        .top2 { color: #c0c0c0; text-shadow: 1px 1px 0 #000; } /* Prata */
-        .top3 { color: #cd7f32; text-shadow: 1px 1px 0 #000; } /* Bronze */
         
         .pontos { text-align: right; }
     </style>
@@ -72,6 +149,17 @@
 
     <h1>🏆 RANKING GERAL 🏆<br><br>FLAPPY JORGE</h1>
     
+    <!-- Container do Pódio (Inicia Oculto) -->
+    <div class="podium-container" id="podium-container" style="display: none;">
+        <!-- 2º Lugar (Esquerda) -->
+        <div class="podium-step step-2" id="podio-2"></div>
+        <!-- 1º Lugar (Centro) -->
+        <div class="podium-step step-1" id="podio-1"></div>
+        <!-- 3º Lugar (Direita) -->
+        <div class="podium-step step-3" id="podio-3"></div>
+    </div>
+
+    <!-- Tabela para o resto dos jogadores (4º em diante) -->
     <div class="ranking-container">
         <table>
             <thead>
@@ -94,7 +182,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     
     <script>
-        // Mesma configuração do seu arquivo game.js
         const firebaseConfig = {
             apiKey: "AIzaSyDj11GWGrm_hCZ_cR9Iho0cCDwRi-9lgMs",
             authDomain: "flappyjorge-6df51.firebaseapp.com",
@@ -106,19 +193,19 @@
             measurementId: "G-1GCCZ24ENK"
         };
 
-        // Inicializa o Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
         const tabelaRanking = document.getElementById('tabela-ranking');
+        const podiumContainer = document.getElementById('podium-container');
 
-        // Escuta o banco de dados em tempo real
         db.ref('ranking').on('value', (snapshot) => {
             const dados = snapshot.val();
-            tabelaRanking.innerHTML = ''; // Limpa o carregando
+            tabelaRanking.innerHTML = ''; 
             
             if (!dados) {
                 tabelaRanking.innerHTML = '<tr><td colspan="3" style="text-align:center;">Nenhum recorde ainda!</td></tr>';
+                podiumContainer.style.display = 'none';
                 return;
             }
 
@@ -126,24 +213,60 @@
             const rankingArray = Object.values(dados);
             rankingArray.sort((a, b) => b.pontos - a.pontos);
 
-            // Cria as linhas da tabela
-            rankingArray.forEach((jogador, index) => {
-                let classeTop = '';
+            // Prepara a exibição do Pódio
+            if (rankingArray.length > 0) {
+                podiumContainer.style.display = 'flex';
                 
-                // Destaca os 3 primeiros
-                if (index === 0) classeTop = 'top1';
-                if (index === 1) classeTop = 'top2';
-                if (index === 2) classeTop = 'top3';
+                const podio1 = document.getElementById('podio-1');
+                const podio2 = document.getElementById('podio-2');
+                const podio3 = document.getElementById('podio-3');
 
-                const tr = document.createElement('tr');
-                tr.className = classeTop;
-                tr.innerHTML = `
-                    <td>${index + 1}º</td>
-                    <td>${jogador.nome}</td>
-                    <td class="pontos">${jogador.pontos}</td>
-                `;
-                tabelaRanking.appendChild(tr);
-            });
+                // Função auxiliar para montar o HTML de cada bloco do pódio
+                const criarDegrau = (jogador, posicao, isTop1) => {
+                    if (!jogador) return '';
+                    let coroa = isTop1 ? '<div class="crown">👑</div>' : '';
+                    return `
+                        ${coroa}
+                        <div class="podium-name">${jogador.nome}</div>
+                        <div class="podium-score">${jogador.pontos} XP</div>
+                        <div class="podium-rank">${posicao}</div>
+                    `;
+                };
+
+                // Preenche o pódio se os jogadores existirem
+                podio1.innerHTML = criarDegrau(rankingArray[0], '1º', true);
+                
+                if (rankingArray[1]) {
+                    podio2.style.visibility = 'visible';
+                    podio2.innerHTML = criarDegrau(rankingArray[1], '2º', false);
+                } else {
+                    podio2.style.visibility = 'hidden';
+                }
+
+                if (rankingArray[2]) {
+                    podio3.style.visibility = 'visible';
+                    podio3.innerHTML = criarDegrau(rankingArray[2], '3º', false);
+                } else {
+                    podio3.style.visibility = 'hidden';
+                }
+            }
+
+            // Prepara a tabela para o 4º lugar em diante
+            const demaisJogadores = rankingArray.slice(3);
+            
+            if (demaisJogadores.length === 0 && rankingArray.length > 0) {
+                tabelaRanking.innerHTML = '<tr><td colspan="3" style="text-align:center; color: #888;">Nenhum outro jogador.</td></tr>';
+            } else {
+                demaisJogadores.forEach((jogador, index) => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${index + 4}º</td>
+                        <td>${jogador.nome}</td>
+                        <td class="pontos">${jogador.pontos}</td>
+                    `;
+                    tabelaRanking.appendChild(tr);
+                });
+            }
         });
     </script>
 </body>
